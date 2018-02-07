@@ -86,7 +86,7 @@ func (h *Handle) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 				}
 			}
 
-			msg.Answer = append(rsg.Answer, rr)
+			msg.Answer = append(msg.Answer, rr)
 		}
 	}
 
