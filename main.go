@@ -5,10 +5,8 @@ import (
 	"flag"
 	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/miekg/dns"
 )
@@ -32,68 +30,35 @@ func (h *Handle) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	msg := dns.Msg{}
 	msg.SetReply(r)
 
-	var (
-		rr  dns.RR
-		rrh dns.RR_Header
-	)
-
 	for _, q := range r.Question {
 		domain := q.Name
-		qtype := q.Qtype
+		rtype := q.Qtype
 
-		hdr, err := resolveByHttp(domain, qtype)
-		if err != nil {
+		hdr, err := resolveByHttp(domain, rtype)
+		if err != nil || hdr.Status != 0 {
 			dns.HandleFailed(w, r)
 			return
 		}
+
 		msg.Authoritative = hdr.TC
 
 		for _, a := range hdr.Answer {
-			rrh = dns.RR_Header{
-				Name:   a["name"].(string),
-				Rrtype: qtype,
-				Class:  dns.ClassINET,
-				Ttl:    uint32(a["TTL"].(float64)),
+			v := dns.Fqdn(domain) + "\t"
+			v += strconv.Itoa(int(a["TTL"].(float64))) + "\t"
+			v += dns.ClassToString[dns.ClassINET] + "\t"
+			v += dns.TypeToString[uint16(a["type"].(float64))] + "\t"
+			v += a["data"].(string)
+
+			if rr, err := dns.NewRR(v); err == nil {
+				msg.Answer = append(msg.Answer, rr)
 			}
-
-			switch qtype {
-			case dns.TypeA:
-				rr = &dns.A{
-					Hdr: rrh,
-					A:   net.ParseIP(a["data"].(string)),
-				}
-			case dns.TypeCNAME:
-				rr = &dns.CNAME{
-					Hdr:    rrh,
-					Target: a["data"].(string),
-				}
-			case dns.TypeAAAA:
-				rr = &dns.AAAA{
-					Hdr:  rrh,
-					AAAA: net.ParseIP(a["data"].(string)),
-				}
-			case dns.TypeANY:
-				rr = &dns.ANY{rrh}
-			case dns.TypeMX:
-				d, _ := a["data"].(string)
-				ds := strings.Split(d, " ")
-				prf, _ := strconv.Atoi(ds[0])
-
-				rr = &dns.MX{
-					Hdr:        rrh,
-					Preference: uint16(prf),
-					Mx:         ds[1],
-				}
-			}
-
-			msg.Answer = append(msg.Answer, rr)
 		}
 	}
 
 	w.WriteMsg(&msg)
 }
 
-func resolveByHttp(name string, qtype uint16) (*HttpDnsResponse, error) {
+func resolveByHttp(name string, rtype uint16) (*HttpDnsResponse, error) {
 	var (
 		hdr *HttpDnsResponse
 		err error
@@ -109,7 +74,7 @@ func resolveByHttp(name string, qtype uint16) (*HttpDnsResponse, error) {
 
 	q := req.URL.Query()
 	q.Add("name", name)
-	q.Add("type", strconv.Itoa(int(qtype)))
+	q.Add("type", strconv.Itoa(int(rtype)))
 	req.URL.RawQuery = q.Encode()
 
 	resp, err := client.Do(req)
