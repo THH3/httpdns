@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/miekg/dns"
 )
@@ -22,10 +23,10 @@ type apiResponse struct {
 }
 
 type apiResponseAnswer struct {
-	Name string `json:name`
-	Type uint16 `json:type`
+	Name string `json:"name"`
+	Type uint16 `json:"type"`
 	TTL  int
-	Data string `json:data`
+	Data string `json:"data"`
 }
 
 func (a *apiResponseAnswer) String() string {
@@ -71,7 +72,7 @@ func (h *Handle) ResolveByHttp(name string, rtype uint16) (*apiResponse, error) 
 		err error
 	)
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: time.Duration(5 * time.Second)}
 
 	req, err := http.NewRequest("GET", h.API, nil)
 	if err != nil {
