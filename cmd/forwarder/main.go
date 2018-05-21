@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 
-	"github.com/tr4nch/httpdns/forwarder"
+	"github.com/tranch/httpdns/forwarder"
 )
 
 var appVersion string

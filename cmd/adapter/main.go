@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/miekg/dns"
-	"github.com/tr4nch/httpdns/adapter"
+	"github.com/tranch/httpdns/adapter"
 )
 
 var appVersion string
