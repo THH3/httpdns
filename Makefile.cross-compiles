@@ -29,4 +29,4 @@ app:
 	env CGO_ENABLED=0 GOOS=linux GOARCH=mipsle go build -ldflags "$(LDFLAGS)" -o ./httpdns-forwarder_linux_mipsle ./cmd/forwarder
 
 temp:
-env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o ./httpdns-forwarder_linux_amd64 ./cmd/forwarder
+	env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o ./httpdns-forwarder_linux_amd64 ./cmd/forwarder
