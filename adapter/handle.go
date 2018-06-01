@@ -88,6 +88,7 @@ func (h *Handle) ResolveByHttp(name string, rtype uint16) (*apiResponse, error) 
 
 	if h.Encode {
 		q.Add("encoded", "yes")
+		q.Set("name", base64.StdEncoding.EncodeToString([]byte(name)))
 	}
 
 	req.URL.RawQuery = q.Encode()
@@ -105,11 +106,17 @@ func (h *Handle) ResolveByHttp(name string, rtype uint16) (*apiResponse, error) 
 		return hdr, err
 	}
 
-	data, err := base64.StdEncoding.DecodeString(string(body))
-	if err != nil {
-		log.Println("Unable decode response from base64", err.Error())
-		log.Printf("%v\n", data)
-		return hdr, err
+	var data []byte
+
+	if h.Encode {
+		data, err = base64.StdEncoding.DecodeString(string(body))
+		if err != nil {
+			log.Println("Unable decode response from base64", err.Error())
+			log.Printf("%v\n", data)
+			return hdr, err
+		}
+	} else {
+		data = body
 	}
 
 	if err = json.Unmarshal([]byte(data), &hdr); err != nil {
