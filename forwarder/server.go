@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"encoding/base64"
 )
 
 type Server struct {
@@ -31,6 +32,22 @@ func resolveHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req.URL.RawQuery = r.URL.RawQuery
+	q := req.URL.Query()
+	encoded := q.Get("encoded")
+
+	if encoded == "yes" {
+		name := q.Get("name")
+		domain, err := base64.StdEncoding.DecodeString(name)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		q.Del("encoded")
+		q.Set("name", string(domain))
+	}
+	req.URL.RawQuery = q.Encode()
+
 	resp, err := client.Do(req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -43,5 +60,15 @@ func resolveHandle(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.Write(body)
+
+	var response []byte
+
+	if encoded == "yes" {
+		bodyEncoded := base64.StdEncoding.EncodeToString(body)
+		response = []byte(bodyEncoded)
+	} else {
+		response = body
+	}
+
+	w.Write(response)
 }

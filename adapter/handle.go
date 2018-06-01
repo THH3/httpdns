@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/miekg/dns"
+	"encoding/base64"
 )
 
 type apiResponse struct {
@@ -41,6 +42,7 @@ func (a *apiResponseAnswer) String() string {
 
 type Handle struct {
 	API string
+	Encode bool
 }
 
 func (h *Handle) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
@@ -83,6 +85,11 @@ func (h *Handle) ResolveByHttp(name string, rtype uint16) (*apiResponse, error) 
 	q := req.URL.Query()
 	q.Add("name", name)
 	q.Add("type", strconv.Itoa(int(rtype)))
+
+	if h.Encode {
+		q.Add("encoded", "yes")
+	}
+
 	req.URL.RawQuery = q.Encode()
 
 	resp, err := client.Do(req)
@@ -98,8 +105,14 @@ func (h *Handle) ResolveByHttp(name string, rtype uint16) (*apiResponse, error) 
 		return hdr, err
 	}
 
-	err = json.Unmarshal(body, &hdr)
+	data, err := base64.StdEncoding.DecodeString(string(body))
 	if err != nil {
+		log.Println("Unable decode response from base64", err.Error())
+		log.Printf("%v\n", data)
+		return hdr, err
+	}
+
+	if err = json.Unmarshal([]byte(data), &hdr); err != nil {
 		log.Println("Unable to parse response as JSON:", err.Error())
 		return hdr, err
 	}

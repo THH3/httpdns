@@ -16,6 +16,7 @@ func main() {
 		api     = flag.String("apiUrl", "https://dns.google.com/resolve", "The API URL of HTTP DNS server")
 		host    = flag.String("host", "127.0.0.1", "host")
 		port    = flag.Int("port", 5353, "port")
+		encode  = flag.Bool("encode", false, "encode request with base64")
 		version = flag.Bool("v", false, "version")
 	)
 
@@ -27,7 +28,7 @@ func main() {
 	}
 
 	srv := &dns.Server{Addr: fmt.Sprintf("%s:%d", *host, *port), Net: "udp"}
-	srv.Handler = &adapter.Handle{API: *api}
+	srv.Handler = &adapter.Handle{API: *api, Encode: *encode}
 
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf("Failed to set udp listener %s\n", err.Error())
