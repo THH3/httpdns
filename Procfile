@@ -1,1 +1,1 @@
-web: forwarder -port $PORT
+web: forwarder -host 0.0.0.0 -port $PORT
