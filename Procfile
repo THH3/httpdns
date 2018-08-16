@@ -1,1 +1,1 @@
-web: forwarder -port $PORT
+web: bin/forwarder -port $PORT
