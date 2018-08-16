@@ -31,7 +31,7 @@
 
 [metadata.heroku]
   root-package = "github.com/tranch/httpdns"
-  go-version = "1.10.2"
+  go-version = "1.9.7"
   install = "./cmd/forwarder"
 
 [prune]
