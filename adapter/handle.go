@@ -10,7 +10,12 @@ import (
 
 	"github.com/miekg/dns"
 	"encoding/base64"
+	"net"
+	"context"
 )
+
+// special a upstream DNS server to resolve API server's domain
+var UpstreamServerAddr string
 
 type apiResponse struct {
 	Status   int  // Standard DNS response code (32 bit integer).
@@ -41,7 +46,7 @@ func (a *apiResponseAnswer) String() string {
 }
 
 type Handle struct {
-	API string
+	API    string
 	Encode bool
 }
 
@@ -74,11 +79,15 @@ func (h *Handle) ResolveByHttp(name string, rtype uint16) (*apiResponse, error) 
 		err error
 	)
 
-	client := &http.Client{Timeout: time.Duration(5 * time.Second)}
+	// Must provide a DNS server to resolve the API server domain's IP address
+	// when running as a default DNS server.
+	http.DefaultTransport.(*http.Transport).DialContext = dialContext
+
+	client := &http.Client{Timeout: time.Duration(1 * time.Second)}
 
 	req, err := http.NewRequest("GET", h.API, nil)
 	if err != nil {
-		log.Println("Unable to make request:", err.Error())
+		log.Println("Unable to make request:", err)
 		return hdr, err
 	}
 
@@ -95,14 +104,14 @@ func (h *Handle) ResolveByHttp(name string, rtype uint16) (*apiResponse, error) 
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("HTTP DNS API Error:", err.Error())
+		log.Println("Unable to send request API to server:", err)
 		return hdr, err
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Println("Unable to read response body:", err.Error())
+		log.Println("Unable to read response body:", err)
 		return hdr, err
 	}
 
@@ -111,8 +120,7 @@ func (h *Handle) ResolveByHttp(name string, rtype uint16) (*apiResponse, error) 
 	if h.Encode {
 		data, err = base64.StdEncoding.DecodeString(string(body))
 		if err != nil {
-			log.Println("Unable decode response from base64", err.Error())
-			log.Printf("%v\n", data)
+			log.Println("Unable decode response from base64:", err)
 			return hdr, err
 		}
 	} else {
@@ -120,9 +128,30 @@ func (h *Handle) ResolveByHttp(name string, rtype uint16) (*apiResponse, error) 
 	}
 
 	if err = json.Unmarshal([]byte(data), &hdr); err != nil {
-		log.Println("Unable to parse response as JSON:", err.Error())
+		log.Println("Unable to parse response as JSON:", err)
 		return hdr, err
 	}
 
 	return hdr, nil
+}
+
+func dnsDialer(ctx context.Context, network, address string) (net.Conn, error) {
+	d := net.Dialer{}
+
+	if UpstreamServerAddr == "" {
+		UpstreamServerAddr = address
+	}
+
+	return d.DialContext(ctx, network, UpstreamServerAddr)
+}
+
+func dialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+	d := net.Dialer{
+		Resolver: &net.Resolver{
+			PreferGo: true,
+			Dial:     dnsDialer,
+		},
+	}
+
+	return d.DialContext(ctx, network, addr)
 }
