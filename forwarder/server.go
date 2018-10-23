@@ -31,22 +31,26 @@ func resolveHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req.URL.RawQuery = r.URL.RawQuery
-	q := req.URL.Query()
-	encoded := q.Get("encoded")
+	q := r.URL.Query()    // Request query
+	fq := req.URL.Query() // Forward query
 
-	if encoded == "yes" {
-		name := q.Get("name")
-		domain, err := base64.StdEncoding.DecodeString(name)
+	fName := q.Get("name")
+	fType := q.Get("type")
+	isEncoded := q.Get("encoded") == "yes"
+
+	if isEncoded {
+		domain, err := base64.StdEncoding.DecodeString(fName)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		q.Del("encoded")
-		q.Set("name", string(domain))
+		fName = string(domain)
 	}
-	req.URL.RawQuery = q.Encode()
+
+	fq.Add("name", fName)
+	fq.Add("type", fType)
+	req.URL.RawQuery = fq.Encode()
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -63,7 +67,7 @@ func resolveHandle(w http.ResponseWriter, r *http.Request) {
 
 	var response []byte
 
-	if encoded == "yes" {
+	if isEncoded {
 		bodyEncoded := base64.StdEncoding.EncodeToString(body)
 		response = []byte(bodyEncoded)
 	} else {
