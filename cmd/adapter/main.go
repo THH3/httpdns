@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
+
 	"github.com/miekg/dns"
 	"github.com/tranch/httpdns/adapter"
 	"github.com/jessevdk/go-flags"
-	"time"
 )
 
 var appVersion string
