@@ -17,6 +17,9 @@ import (
 // special a upstream DNS server to resolve API server's domain
 var UpstreamServerAddr string
 
+// wait seconds for API request
+var RequestTimeout = 5 * time.Second
+
 type apiResponse struct {
 	Status   int  // Standard DNS response code (32 bit integer).
 	TC       bool // Whether the response is truncated
@@ -83,7 +86,7 @@ func (h *Handle) ResolveByHttp(name string, rtype uint16) (*apiResponse, error) 
 	// when running as a default DNS server.
 	http.DefaultTransport.(*http.Transport).DialContext = dialContext
 
-	client := &http.Client{Timeout: time.Duration(1 * time.Second)}
+	client := &http.Client{Timeout: RequestTimeout}
 
 	req, err := http.NewRequest("GET", h.API, nil)
 	if err != nil {
@@ -104,7 +107,7 @@ func (h *Handle) ResolveByHttp(name string, rtype uint16) (*apiResponse, error) 
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("Unable to send request API to server:", err)
+		log.Println("Unable to request API server:", err)
 		return hdr, err
 	}
 	defer resp.Body.Close()

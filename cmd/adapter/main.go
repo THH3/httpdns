@@ -6,6 +6,7 @@ import (
 	"github.com/miekg/dns"
 	"github.com/tranch/httpdns/adapter"
 	"github.com/jessevdk/go-flags"
+	"time"
 )
 
 var appVersion string
@@ -15,6 +16,7 @@ type options struct {
 	LocalAddr string `short:"b" description:"Special local address to bind"`
 	Encode    bool   `short:"e" long:"enc" description:"Encoding request body with base64"`
 	Upstream  string `short:"u" long:"upstream" description:"Special upstream DNS server to resolve API server's domain"`
+	Timeout   int64  `short:"w" long:"timeout" description:"Wait seconds for API request"`
 	Version   bool   `short:"v" long:"version" description:"Show version"`
 }
 
@@ -22,6 +24,7 @@ func main() {
 	opts := &options{
 		Api:       "https://dns.google.com/resolve",
 		LocalAddr: ":53",
+		Timeout:   5,
 		Encode:    false,
 		Version:   false,
 	}
@@ -39,6 +42,8 @@ func main() {
 	if opts.Upstream != "" {
 		adapter.UpstreamServerAddr = opts.Upstream
 	}
+
+	adapter.RequestTimeout = time.Duration(opts.Timeout) * time.Second
 
 	srv := &dns.Server{Addr: opts.LocalAddr, Net: "udp"}
 	srv.Handler = &adapter.Handle{API: opts.Api, Encode: opts.Encode}
