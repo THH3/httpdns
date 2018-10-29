@@ -1,17 +1,17 @@
 package adapter
 
 import (
+	"context"
 	"encoding/json"
+	"encoding/base64"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/miekg/dns"
-	"encoding/base64"
-	"net"
-	"context"
 )
 
 // special a upstream DNS server to resolve API server's domain
