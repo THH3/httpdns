@@ -64,8 +64,6 @@ func (h *Handle) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 			return
 		}
 
-		msg.Authoritative = hdr.TC
-
 		for _, a := range hdr.Answer {
 			if rr, err := dns.NewRR(a.String()); err == nil {
 				msg.Answer = append(msg.Answer, rr)
