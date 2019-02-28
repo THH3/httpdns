@@ -92,6 +92,8 @@ func (h *Handle) ResolveByHttp(name string, rtype uint16) (*apiResponse, error) 
 		return hdr, err
 	}
 
+	req.Header.Set("accept", "application/dns-json")
+
 	q := req.URL.Query()
 	q.Add("name", name)
 	q.Add("type", strconv.Itoa(int(rtype)))
